@@ -6,42 +6,37 @@
 camera create_camera() {
 	camera new_camera;
 
-	new_camera.eyeX = 0;
-	new_camera.eyeY = 0;
-	new_camera.eyeZ = 0;
-
-	new_camera.centerX = 0;
-	new_camera.centerY = 0;
-	new_camera.centerZ = 0;
-
-	new_camera.upX = 0;
-	new_camera.upY = 0;
-	new_camera.upZ = 0;
+	new_camera.eye =    (vector3) { 0, 0, 1 };
+	new_camera.center = (vector3) { 0, 0, -8 };
+	new_camera.up =     (vector3) { 0, 1, 0 };
 
 	return new_camera;
 }
 
 void look_at(camera camera) {
+	vector3 center = sum(camera.eye, camera.center);
 	gluLookAt(
-		camera.eyeX, camera.eyeY, camera.eyeZ,
-		camera.centerX + camera.eyeX, camera.centerY, camera.centerZ + camera.eyeZ,
-		camera.upX,	camera.upY, camera.upZ
+		camera.center.x, camera.center.y, camera.center.z,
+		center.x, center.y, center.z,
+		camera.up.x,	camera.up.y, camera.up.z
 	);
 }
 
-// void moveForward(camera* camera, float step) {
-// 	camera->center
-//
-// }
+void moveForward(camera* camera, float step) {
+	camera->center = sum(camera->center, multiply_by_scalar(camera->eye, step));
+}
 
 void moveBackward(camera* camera, float step) {
-
+	camera->center = sum(camera->center, multiply_by_scalar(camera->eye, -step));
 }
 
-void moveLeft(camera* camera, float step) {
-
+void strafeLeft(camera* camera, float step) {
+	vector3 strafeDirection = cross(camera->eye, camera->up);
+	camera->center = sum(camera->center, multiply_by_scalar(strafeDirection, step));
 }
 
-void moveRight(camera* camera, float step) {
-
+void strafeRight(camera* camera, float step) {
+	vector3 strafeDirection = cross(camera->eye, camera->up);
+	camera->center = sum(camera->center, multiply_by_scalar(strafeDirection, -step));
 }
+

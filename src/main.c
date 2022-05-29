@@ -14,7 +14,7 @@ void teapot() {
 }
 
 int main(int argc, char** argv) {
-	engine* engine = create_engine("3D house", 60);
+	engine* engine = create_engine("3D house", 80);
 	
 	add_draw_function(engine, teapot);
 	init_engine(engine, argc, argv);	

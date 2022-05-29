@@ -31,8 +31,6 @@ engine* create_engine(char* window_title, int fps) {
 	current_engine->title = window_title;
 
 	current_engine->camera = create_camera();
-	current_engine->camera.eyeZ = 2;
-	current_engine->camera.upY = 1;
 
 	current_engine->draw_count = 0;
 	current_engine->draw_functions = malloc(sizeof(draw_function));
@@ -81,6 +79,21 @@ void on_key_released(unsigned char key, int x, int y) {
 	generic_key_press(key, false);
 }
 
+void on_mouse(int x, int y) {
+	vector3 mouse_delta = { 
+		x - current_engine->old_mouse[0], 
+		y - current_engine->old_mouse[1], 
+		0 
+	};
+	if (magnitude(mouse_delta) < 50) {
+		glRotatef(300, 0, 0, 0);
+		// current_engine->camera.eye = cross(multiply_by_scalar(mouse_delta, 0.8), current_engine->camera.eye);
+	}
+
+	current_engine->old_mouse[0] = x;
+	current_engine->old_mouse[1] = y;
+}
+
 void init_engine(engine* engine, int argc, char** argv) {
 	glutInit(&argc, argv);
 	glutInitDisplayMode(GLUT_SINGLE | GLUT_RGB | GLUT_DEPTH);
@@ -91,9 +104,11 @@ void init_engine(engine* engine, int argc, char** argv) {
 
 	glutDisplayFunc(draw);
 	glutReshapeFunc(resize);
-	 
+
 	glutKeyboardFunc(on_key_press);
 	glutKeyboardUpFunc(on_key_released);
+
+	glutPassiveMotionFunc(on_mouse);
 
 	glClearColor(0.0, 0.0, 0.0, 0.0);
   glShadeModel(GL_SMOOTH);
@@ -103,19 +118,23 @@ void init_engine(engine* engine, int argc, char** argv) {
   GLfloat light_diffuse[] = { 1.0, 1.0, 1.0, 1.0 };
   GLfloat light_specular[] = { 1.0, 1.0, 1.0, 1.0 };
   GLfloat light_position[] = { 10.0, 10.0, 10.0, 0.0 };
-
+	
   glLightfv(GL_LIGHT0, GL_AMBIENT, light_ambient);
   glLightfv(GL_LIGHT0, GL_DIFFUSE, light_diffuse);
   glLightfv(GL_LIGHT0, GL_SPECULAR, light_specular);
   glLightfv(GL_LIGHT0, GL_POSITION, light_position);
-
+	
   glEnable(GL_LIGHTING);
   glEnable(GL_LIGHT0);
   glEnable(GL_DEPTH_TEST);
 
   //Primeira cor, para depois mudarmos com os eventos
-  glColor3f(0.5, 1.0, 0.5);
+  // glColor3f(0.5, 1.0, 0.5);
 
+	current_engine->old_mouse[0] = 0;
+	current_engine->old_mouse[1] = 0;
+
+	look_at(current_engine->camera);
 	update(0);
 
 	glutMainLoop();
@@ -128,9 +147,8 @@ void draw() {
   glLoadIdentity();
 
 	look_at(current_engine->camera);
-  
+
 	for (int i = 0; i < current_engine->draw_count; i++) {
-		printf("Executing teapot\n");
 		current_engine->draw_functions[i]();
 	}
     
@@ -141,11 +159,17 @@ void resize(int width, int height) {
   glViewport(0, 0, (GLsizei) width, (GLsizei) height);
   glMatrixMode(GL_PROJECTION);
   glLoadIdentity();
-  if (width <= height) {
-    glOrtho(-5, 5, -5 * (GLfloat)height / (GLfloat)width, 5 * (GLfloat)height/(GLfloat)width, -10.0, 10.0);
-	} else {
-    glOrtho(-5 * (GLfloat)width/(GLfloat)height, 5*(GLfloat)width/(GLfloat)height, -5, 5, -10.0, 10.0);
-	}
+	
+ //  if (width <= height) {
+ //    // glOrtho(-5, 5, -5 * (GLfloat)height / (GLfloat)width, 5 * (GLfloat)height/(GLfloat)width, -10.0, 10.0);
+ //    glOrtho(-5, 5, -5 * (GLfloat)height / (GLfloat)width, 5 * (GLfloat)height/(GLfloat)width, -10.0, 10.0);
+	// } else {
+ //    glOrtho(-5 * (GLfloat)width/(GLfloat)height, 5*(GLfloat)width/(GLfloat)height, -5, 5, -10.0, 10.0);
+	// }
+
+	// glFrustum(-1.0, 1.0, -1.0, 1.0, 1.5, 200.0);
+	gluPerspective(1000.0, 1.0, 1.5, 200.0);
+
 }
 
 static long current_time_millis() {
@@ -168,20 +192,29 @@ void update(int id) {
 
 	double angle = current_engine->last_draw_call_time / 100 % 360 * 0.017453;
 	
-	double step = 0.001;
+	double step = 0.000001;
 	if (left_pressed) {
-		current_engine->camera.centerX -= step;
+		strafeLeft(&current_engine->camera, step);
 	}
 	if (right_pressed) {
-		current_engine->camera.centerX += step;
+		strafeRight(&current_engine->camera, step);
 	}
 
 	if (up_pressed) {
-		current_engine->camera.centerZ -= step;
+		moveForward(&current_engine->camera, step);
 	}
 	if (down_pressed) {
-		current_engine->camera.centerZ += step;
+		moveBackward(&current_engine->camera, step);
 	}
+
+	// if (left_pressed || right_pressed || up_pressed || down_pressed) {
+	// 	print_vector(current_engine->camera.eye);
+	// 	printf("    ");
+	// 	print_vector(current_engine->camera.center);
+	// 	printf("    ");
+	// 	print_vector(current_engine->camera.up);
+	// 	printf("\n");
+	// }
 		
 	// printf("Angle: %f\n", angle);
 
@@ -190,7 +223,7 @@ void update(int id) {
 	// current_engine->camera.centerX = sin(angle) * radius;
 	// current_engine->camera.centerY = cos(angle) * radius;
 	//
-	printf("Enabled: %d %d %d %d\n", up_pressed, right_pressed, down_pressed, left_pressed);
+	// printf("Enabled: %d %d %d %d\n", up_pressed, right_pressed, down_pressed, left_pressed);
 	
 	glutPostRedisplay();
 

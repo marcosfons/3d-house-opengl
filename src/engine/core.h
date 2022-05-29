@@ -16,6 +16,7 @@ typedef struct {
 	long last_draw_call_time;
 
 	camera camera;
+	double old_mouse[2];
 
 	int draw_count;
 	draw_function* draw_functions;
