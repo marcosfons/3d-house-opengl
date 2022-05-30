@@ -19,7 +19,7 @@ static bool down_pressed = false;
 static bool right_pressed = false;
 
 
-engine* create_engine(char* window_title, int fps) {
+engine* create_engine(char* window_title, int fps, int width, int height) {
 	if (current_engine != NULL) {
 		printf("Two engines can't run at the same time");
 		exit(EXIT_FAILURE);
@@ -29,6 +29,8 @@ engine* create_engine(char* window_title, int fps) {
 
 	current_engine->fps = fps;
 	current_engine->title = window_title;
+	current_engine->width = width;
+	current_engine->height = height;
 
 	current_engine->camera = create_camera();
 
@@ -37,6 +39,9 @@ engine* create_engine(char* window_title, int fps) {
 
 	current_engine->update_count = 0;
 	current_engine->update_functions = malloc(sizeof(update_function));
+
+	current_engine->old_mouse[0] = -DBL_MAX;
+	current_engine->old_mouse[1] = -DBL_MAX;
 
 	return current_engine;
 }
@@ -79,28 +84,40 @@ void on_key_released(unsigned char key, int x, int y) {
 	generic_key_press(key, false);
 }
 
+// Code based on https://learnopengl.com/Getting-started/Camera
 void on_mouse(int x, int y) {
-	vector3 mouse_delta = { 
-		x - current_engine->old_mouse[0], 
-		y - current_engine->old_mouse[1], 
-		0 
-	};
-	if (magnitude(mouse_delta) < 50) {
-		glRotatef(300, 0, 0, 0);
-		// current_engine->camera.eye = cross(multiply_by_scalar(mouse_delta, 0.8), current_engine->camera.eye);
-	}
+	float sensitivity = 0.1f;
+	float dx = (current_engine->old_mouse[0] - x) * sensitivity;
+	float dy = (y - current_engine->old_mouse[1]) * sensitivity; 
 
 	current_engine->old_mouse[0] = x;
 	current_engine->old_mouse[1] = y;
+
+	if ((dx > MOUSE_DELTA_LIMIT || dx < -MOUSE_DELTA_LIMIT) ||
+	    (dy > MOUSE_DELTA_LIMIT || dy < -MOUSE_DELTA_LIMIT)) {
+		return;
+	}
+
+	mouse_movement(&current_engine->camera, dx, dy);
+
+	double center_width = (double) current_engine->width / 2;
+	double center_height = (double) current_engine->height / 2;
+	if ((x < MOUSE_BOUND_SCREEN_LIMIT || x > (current_engine->width) - MOUSE_BOUND_SCREEN_LIMIT) ||
+	    (y < MOUSE_BOUND_SCREEN_LIMIT || y > (current_engine->height) - MOUSE_BOUND_SCREEN_LIMIT)) {
+		current_engine->old_mouse[0] = center_width;
+		current_engine->old_mouse[1] = center_height;
+
+		glutWarpPointer(center_width, center_height); // Center the cursor
+	}
 }
 
 void init_engine(engine* engine, int argc, char** argv) {
 	glutInit(&argc, argv);
 	glutInitDisplayMode(GLUT_SINGLE | GLUT_RGB | GLUT_DEPTH);
-	glutInitWindowSize(800, 400);
+	glutInitWindowSize(engine->width, engine->height);
 	glutInitWindowPosition(50, 50);
 
-	glutCreateWindow(engine->title);
+	engine->window_id = glutCreateWindow(engine->title);
 
 	glutDisplayFunc(draw);
 	glutReshapeFunc(resize);
@@ -131,8 +148,7 @@ void init_engine(engine* engine, int argc, char** argv) {
   //Primeira cor, para depois mudarmos com os eventos
   // glColor3f(0.5, 1.0, 0.5);
 
-	current_engine->old_mouse[0] = 0;
-	current_engine->old_mouse[1] = 0;
+	glutSetCursor(GLUT_CURSOR_NONE);
 
 	look_at(current_engine->camera);
 	update(0);
@@ -170,6 +186,8 @@ void resize(int width, int height) {
 	// glFrustum(-1.0, 1.0, -1.0, 1.0, 1.5, 200.0);
 	gluPerspective(1000.0, 1.0, 1.5, 200.0);
 
+	current_engine->width = width;
+	current_engine->height = height;
 }
 
 static long current_time_millis() {
@@ -190,41 +208,21 @@ void update(int id) {
 		current_engine->update_functions[i](elapsed);
 	}
 
-	double angle = current_engine->last_draw_call_time / 100 % 360 * 0.017453;
-	
-	double step = 0.000001;
-	if (left_pressed) {
-		strafeLeft(&current_engine->camera, step);
-	}
-	if (right_pressed) {
-		strafeRight(&current_engine->camera, step);
-	}
+	double step = 0.000002;
 
 	if (up_pressed) {
-		moveForward(&current_engine->camera, step);
+		move_forward(&current_engine->camera, step);
 	}
 	if (down_pressed) {
-		moveBackward(&current_engine->camera, step);
+		move_backward(&current_engine->camera, step);
+	}
+	if (left_pressed) {
+		move_left(&current_engine->camera, step);
+	}
+	if (right_pressed) {
+		move_right(&current_engine->camera, step);
 	}
 
-	// if (left_pressed || right_pressed || up_pressed || down_pressed) {
-	// 	print_vector(current_engine->camera.eye);
-	// 	printf("    ");
-	// 	print_vector(current_engine->camera.center);
-	// 	printf("    ");
-	// 	print_vector(current_engine->camera.up);
-	// 	printf("\n");
-	// }
-		
-	// printf("Angle: %f\n", angle);
-
-	// int radius = 100;
-	//
-	// current_engine->camera.centerX = sin(angle) * radius;
-	// current_engine->camera.centerY = cos(angle) * radius;
-	//
-	// printf("Enabled: %d %d %d %d\n", up_pressed, right_pressed, down_pressed, left_pressed);
-	
 	glutPostRedisplay();
 
 	glutTimerFunc(1 / current_engine->fps * 1000, update, id);
