@@ -1,7 +1,7 @@
+#include <GL/freeglut_std.h>
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <stdbool.h>
 #include <sys/time.h>
 
 #include <GL/gl.h>
@@ -11,12 +11,21 @@
 #include "core.h"
 
 
+// ASCII
+#define SPACEBAR_KEY 32
+
+// Special
+#define CONTROL_KEY 114
+
+
 static engine* current_engine = NULL;
 
 static bool left_pressed = false;
 static bool up_pressed = false;
 static bool down_pressed = false;
 static bool right_pressed = false;
+static bool space_pressed = false;
+static bool control_pressed = false;
 
 
 engine* create_engine(char* window_title, int fps, int width, int height) {
@@ -32,13 +41,18 @@ engine* create_engine(char* window_title, int fps, int width, int height) {
 	current_engine->width = width;
 	current_engine->height = height;
 
+	current_engine->last_update_call_time = 0;
+
 	current_engine->camera = create_camera();
 
+	current_engine->init_count = 0;
+	current_engine->init_functions = NULL;
+
 	current_engine->draw_count = 0;
-	current_engine->draw_functions = malloc(sizeof(draw_function));
+	current_engine->draw_functions = NULL;
 
 	current_engine->update_count = 0;
-	current_engine->update_functions = malloc(sizeof(update_function));
+	current_engine->update_functions = NULL;
 
 	current_engine->old_mouse[0] = -DBL_MAX;
 	current_engine->old_mouse[1] = -DBL_MAX;
@@ -48,29 +62,27 @@ engine* create_engine(char* window_title, int fps, int width, int height) {
 
 static void generic_key_press(unsigned char key, bool is_pressed) {
 	switch (key) {
-		case 'a':
-		case 'A':
+		case 'a': case 'A':
 			left_pressed = is_pressed;
 			break;
-		case 'd':
-		case 'D':
+		case 'd': case 'D':
 			right_pressed = is_pressed;
 			break;
-		case 'w':
-		case 'W':
+		case 'w': case 'W':
 			up_pressed = is_pressed;
 			break;
-		case 's':
-		case 'S':
+		case 's': case 'S':
 			down_pressed = is_pressed;
+			break;
+		case SPACEBAR_KEY:
+			space_pressed = is_pressed;
 			break;
 	}
 }
 
 void on_key_press(unsigned char key, int x, int y) {
   switch (key) {
-    case 'q': 
-    case 'Q':
+    case 'q': case 'Q':
 			destroy_engine();
 			glutDestroyWindow(glutGetWindow());
 			break;
@@ -84,11 +96,30 @@ void on_key_released(unsigned char key, int x, int y) {
 	generic_key_press(key, false);
 }
 
+static void special_key_press(int key, bool is_pressed) {
+	switch (key) {
+		case CONTROL_KEY:
+			control_pressed = is_pressed;
+			break;
+	}
+}
+
+void on_special_key_press(int key, int x, int y) {
+	special_key_press(key, true);
+}
+
+void on_special_key_released(int key, int x, int y) {
+	special_key_press(key, false);
+}
+
 // Code based on https://learnopengl.com/Getting-started/Camera
 void on_mouse(int x, int y) {
-	float sensitivity = 0.1f;
-	float dx = (current_engine->old_mouse[0] - x) * sensitivity;
-	float dy = (y - current_engine->old_mouse[1]) * sensitivity; 
+	float sensitivity = 0.1;
+	// float dx = (current_engine->old_mouse[0] - x) * sensitivity;
+	// float dy = (y - current_engine->old_mouse[1]) * sensitivity; 
+	// Inverse
+	float dx = (x - current_engine->old_mouse[0]) * sensitivity;
+	float dy = (current_engine->old_mouse[1] - y) * sensitivity;
 
 	current_engine->old_mouse[0] = x;
 	current_engine->old_mouse[1] = y;
@@ -109,6 +140,12 @@ void on_mouse(int x, int y) {
 
 		glutWarpPointer(center_width, center_height); // Center the cursor
 	}
+
+	glutPostRedisplay();
+}
+
+void on_menu(int v) {
+
 }
 
 void init_engine(engine* engine, int argc, char** argv) {
@@ -124,6 +161,8 @@ void init_engine(engine* engine, int argc, char** argv) {
 
 	glutKeyboardFunc(on_key_press);
 	glutKeyboardUpFunc(on_key_released);
+	glutSpecialFunc(on_special_key_press);
+	glutSpecialUpFunc(on_special_key_released);
 
 	glutPassiveMotionFunc(on_mouse);
 
@@ -134,7 +173,7 @@ void init_engine(engine* engine, int argc, char** argv) {
   GLfloat light_ambient[] = { 0.0, 0.0, 0.0, 1.0 };
   GLfloat light_diffuse[] = { 1.0, 1.0, 1.0, 1.0 };
   GLfloat light_specular[] = { 1.0, 1.0, 1.0, 1.0 };
-  GLfloat light_position[] = { 10.0, 10.0, 10.0, 0.0 };
+  GLfloat light_position[] = { 40.0, 10.0, 10.0, 0.0 };
 	
   glLightfv(GL_LIGHT0, GL_AMBIENT, light_ambient);
   glLightfv(GL_LIGHT0, GL_DIFFUSE, light_diffuse);
@@ -151,7 +190,14 @@ void init_engine(engine* engine, int argc, char** argv) {
 	glutSetCursor(GLUT_CURSOR_NONE);
 
 	look_at(current_engine->camera);
-	update(0);
+
+
+	for (int i = 0; i < current_engine->init_count; i++) {
+		current_engine->init_functions[i]();
+	}
+
+	update();
+	glutIdleFunc(update);
 
 	glutMainLoop();
 }
@@ -168,7 +214,7 @@ void draw() {
 		current_engine->draw_functions[i]();
 	}
     
-  glFlush();
+  glutSwapBuffers();
 }
 
 void resize(int width, int height) {
@@ -183,33 +229,30 @@ void resize(int width, int height) {
  //    glOrtho(-5 * (GLfloat)width/(GLfloat)height, 5*(GLfloat)width/(GLfloat)height, -5, 5, -10.0, 10.0);
 	// }
 
-	// glFrustum(-1.0, 1.0, -1.0, 1.0, 1.5, 200.0);
-	gluPerspective(1000.0, 1.0, 1.5, 200.0);
+	// glFrustum(-1.0, 1.0, -1.0, 1.0, 1.5, 20.0);
+	// gluPerspective(1180 * 3.141 / 180, (float) width / height, 1.5, 100.0);
+	// gluPerspective(1000, 1, 1.5, 100.0);
+	gluPerspective(49.134, (float) width / height, 1, 1000.0);
 
 	current_engine->width = width;
 	current_engine->height = height;
 }
 
-static long current_time_millis() {
-  struct timeval time;
-  gettimeofday(&time, NULL);
-
-  return time.tv_sec * 1000 + time.tv_usec / 1000;
-}
-
 // TODO(marcosfons): Check update function
-void update(int id) {
-	if (glutGetWindow() == 0 || current_engine == NULL) {
-		return;
-	}
+void update() {
+	bool should_redraw = false;
+	int since_start = glutGet(GLUT_ELAPSED_TIME);
+	int delta = since_start - current_engine->last_update_call_time;
+	current_engine->last_update_call_time = since_start;
+	double step = 0.01 * delta;
 
-	long elapsed = current_engine->last_draw_call_time - current_time_millis();
 	for (int i = 0; i < current_engine->update_count; i++) {
-		current_engine->update_functions[i](elapsed);
+		should_redraw = current_engine->update_functions[i](delta) || should_redraw;
 	}
 
-	double step = 0.000002;
-
+	should_redraw = should_redraw || 
+									up_pressed || down_pressed || right_pressed || left_pressed || 
+									space_pressed || control_pressed;
 	if (up_pressed) {
 		move_forward(&current_engine->camera, step);
 	}
@@ -217,22 +260,33 @@ void update(int id) {
 		move_backward(&current_engine->camera, step);
 	}
 	if (left_pressed) {
-		move_left(&current_engine->camera, step);
-	}
-	if (right_pressed) {
 		move_right(&current_engine->camera, step);
 	}
+	if (right_pressed) {
+		move_left(&current_engine->camera, step);
+	}
+	if (space_pressed) {
+		move_up(&current_engine->camera, step);
+	}
+	if (control_pressed) {
+		move_down(&current_engine->camera, step);
+	}
 
-	glutPostRedisplay();
+	if (should_redraw) {
+		glutPostRedisplay();
+	}
+}
 
-	glutTimerFunc(1 / current_engine->fps * 1000, update, id);
-	current_engine->last_draw_call_time = current_time_millis();
+void add_init_function(engine* engine, init_function func) {
+	engine->init_count += 1;
+	engine->init_functions = realloc(engine->init_functions, engine->init_count);
+	engine->init_functions[engine->init_count - 1] = func;
 }
 
 void add_draw_function(engine* engine, draw_function func) {
-	engine->draw_functions = realloc(engine->draw_functions, engine->draw_count + 1);
-	engine->draw_functions[engine->draw_count] = func;
 	engine->draw_count += 1;
+	engine->draw_functions = realloc(engine->draw_functions, engine->draw_count);
+	engine->draw_functions[engine->draw_count - 1] = func;
 }
 
 void add_update_function(engine* engine, update_function func) {

@@ -10,7 +10,8 @@
 void teapot() {
 	glColor3ub(255, 0, 0);
 	glScalef(5, 5, 5);
-	glutSolidCube(1.0f);
+	// glutSolidCube(1.0f);
+	glutSolidTeapot(1);
 }
 
 int main(int argc, char** argv) {

@@ -1,4 +1,6 @@
 #include <math.h>
+#include <stdio.h>
+
 #include <GL/glut.h>
 
 #include "camera.h"
@@ -38,6 +40,14 @@ void move_backward(camera* camera, float step) {
 	vector3 v = multiply_by_scalar(camera->eye, step);
 	camera->center.x -= v.x;
 	camera->center.z -= v.z;
+}
+
+void move_up(camera* camera, float step) {
+	camera->center.y += step;
+}
+
+void move_down(camera* camera, float step) {
+	camera->center.y -= step;
 }
 
 void move_left(camera* camera, float step) {

@@ -23,6 +23,9 @@ void move_backward(camera* camera, float step);
 void move_left(camera* camera, float step);
 void move_right(camera* camera, float step);
 
+void move_up(camera* camera, float step);
+void move_down(camera* camera, float step);
+
 void mouse_movement(camera* camera, double dx, double dy);
 
 #endif
