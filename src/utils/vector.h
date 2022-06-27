@@ -8,6 +8,7 @@ typedef struct {
 } vector3;
 
 vector3 empty_vector();
+vector3 create_vector(float x, float y, float z);
 
 vector3 sum(vector3 v1, vector3 v2);
 vector3 subtract(vector3 v1, vector3 v2);

@@ -1,10 +1,10 @@
 CC=gcc
-CFLAGS=-g -Wall -lm -lGL -lGLU -lglut
-LDLIBS=
+CFLAGS=-g -Wall -lm -lGL -lGLU -lglut -lGLEW
 
 MKDIR_P=mkdir -p
 
 EXE=main
+TEST_EXE=test_parser
 
 SRC=src
 BIN=bin
@@ -20,7 +20,14 @@ help:
 	@echo -e 'Usage: make [\033[36mtarget\033[0m]\ntargets:'
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | \
 		sort | \
-		awk 'BEGIN {FS = ":.*?## "}; {printf "    \033[36m%-8s\033[0m %s\n", $$1, $$2}'
+		sed \
+			-e :a \
+			-e 's/^\([^:]\{1,10\}\):/\1 :/;ta' \
+			-e 's/^\([^:]*\): \+##/    \x1b[36m\1\x1b[0m/'
+# sed -e :a \                                      Create a label "a"
+# 	-e 's/^\([^:]\{1,9\}\):/\1 :/;ta' \            Loop through the string adding white space padding
+# 	-e 's/^\([^:]*\): \+##/    \x1b[36m\1\x1b[0m/' Replace target with colored output
+
 
 .PHONY: debug
 debug: ## Build an executable to debug 
@@ -28,7 +35,7 @@ debug: $(BIN)/$(EXE)
 
 .PHONY: release
 release: ## Build a release executable
-release: CFLAGS += -O2 -DNDEBUG
+release: CFLAGS=-O2 -DNDEBUG -lm -lGL -lGLU -lglut -lGLEW
 release: clean
 release: $(BIN)/$(EXE)
 

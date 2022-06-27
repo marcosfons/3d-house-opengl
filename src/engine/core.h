@@ -20,6 +20,8 @@ typedef void (*draw_function)();
 // @return A boolean indicating if any value was changed, and there must be a new draw call
 typedef bool (*update_function)(long time);
 
+typedef void (*on_camera_move_function)(camera* camera);
+
 typedef struct {
 	// Screen
 	int window_id;
@@ -36,14 +38,13 @@ typedef struct {
 	// Mouse
 	double old_mouse[2];
 
-	int init_count;
 	draw_function* init_functions;
 
-	int draw_count;
 	draw_function* draw_functions;
 
-	int update_count;
 	update_function* update_functions;
+
+	on_camera_move_function* on_camera_move_functions;
 } engine;
 
 
@@ -51,20 +52,15 @@ engine* create_engine(char* window_title, int fps, int width, int height);
 
 void init_engine(engine* engine, int argc, char** argv);
 
-void draw();
-void update();
+void engine_draw();
+void engine_update();
 void resize(int width, int height);
 
 void add_init_function(engine* engine, init_function func);
 void add_draw_function(engine* engine, draw_function func);
 void add_update_function(engine* engine, update_function func);
+void add_on_camera_move_function(engine* engine, on_camera_move_function func);
 
 void destroy_engine();
-
-// glutDisplayFunc(draw);
-// glutReshapeFunc(resizeWindow);
-//
-// glutKeyboardFunc(onKeyPress);
-// glutTimerFunc(REFRESH_TIME, animationTimer, 1);
 
 #endif

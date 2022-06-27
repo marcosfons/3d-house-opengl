@@ -1,11 +1,13 @@
-#include <GL/freeglut_std.h>
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <sys/time.h>
 
+#include <GL/glew.h>
 #include <GL/gl.h>
 #include <GL/glut.h>
+
+#include "../../include/stb/stb_ds.h"
 
 #include "camera.h"
 #include "core.h"
@@ -45,14 +47,10 @@ engine* create_engine(char* window_title, int fps, int width, int height) {
 
 	current_engine->camera = create_camera();
 
-	current_engine->init_count = 0;
 	current_engine->init_functions = NULL;
-
-	current_engine->draw_count = 0;
 	current_engine->draw_functions = NULL;
-
-	current_engine->update_count = 0;
 	current_engine->update_functions = NULL;
+	current_engine->on_camera_move_functions = NULL;
 
 	current_engine->old_mouse[0] = -DBL_MAX;
 	current_engine->old_mouse[1] = -DBL_MAX;
@@ -130,6 +128,9 @@ void on_mouse(int x, int y) {
 	}
 
 	mouse_movement(&current_engine->camera, dx, dy);
+	for (int i = 0; i < arrlen(current_engine->on_camera_move_functions); i++) {
+		current_engine->on_camera_move_functions[i](&(current_engine->camera));
+	}
 
 	double center_width = (double) current_engine->width / 2;
 	double center_height = (double) current_engine->height / 2;
@@ -144,10 +145,6 @@ void on_mouse(int x, int y) {
 	glutPostRedisplay();
 }
 
-void on_menu(int v) {
-
-}
-
 void init_engine(engine* engine, int argc, char** argv) {
 	glutInit(&argc, argv);
 	glutInitDisplayMode(GLUT_SINGLE | GLUT_RGB | GLUT_DEPTH);
@@ -156,7 +153,7 @@ void init_engine(engine* engine, int argc, char** argv) {
 
 	engine->window_id = glutCreateWindow(engine->title);
 
-	glutDisplayFunc(draw);
+	glutDisplayFunc(engine_draw);
 	glutReshapeFunc(resize);
 
 	glutKeyboardFunc(on_key_press);
@@ -166,43 +163,32 @@ void init_engine(engine* engine, int argc, char** argv) {
 
 	glutPassiveMotionFunc(on_mouse);
 
-	glClearColor(0.0, 0.0, 0.0, 0.0);
+	glClearColor(0.1, 0.1, 0.1, 0);
   glShadeModel(GL_SMOOTH);
-  glEnable(GL_COLOR_MATERIAL);
+	
+	// float am[4] = {0.3, 0.3, 0.3, 1};
+	// glLightModelfv(GL_LIGHT_MODEL_AMBIENT, am);
 
-  GLfloat light_ambient[] = { 0.0, 0.0, 0.0, 1.0 };
-  GLfloat light_diffuse[] = { 1.0, 1.0, 1.0, 1.0 };
-  GLfloat light_specular[] = { 1.0, 1.0, 1.0, 1.0 };
-  GLfloat light_position[] = { 40.0, 10.0, 10.0, 0.0 };
-	
-  glLightfv(GL_LIGHT0, GL_AMBIENT, light_ambient);
-  glLightfv(GL_LIGHT0, GL_DIFFUSE, light_diffuse);
-  glLightfv(GL_LIGHT0, GL_SPECULAR, light_specular);
-  glLightfv(GL_LIGHT0, GL_POSITION, light_position);
-	
   glEnable(GL_LIGHTING);
-  glEnable(GL_LIGHT0);
   glEnable(GL_DEPTH_TEST);
-
-  //Primeira cor, para depois mudarmos com os eventos
-  // glColor3f(0.5, 1.0, 0.5);
 
 	glutSetCursor(GLUT_CURSOR_NONE);
 
 	look_at(current_engine->camera);
 
+	engine_update();
+	glutIdleFunc(engine_update);
 
-	for (int i = 0; i < current_engine->init_count; i++) {
+	glewInit();
+
+	for (int i = 0; i < arrlen(current_engine->init_functions); i++) {
 		current_engine->init_functions[i]();
 	}
-
-	update();
-	glutIdleFunc(update);
 
 	glutMainLoop();
 }
 
-void draw() {
+void engine_draw() {
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
   
   glMatrixMode(GL_MODELVIEW);
@@ -210,7 +196,7 @@ void draw() {
 
 	look_at(current_engine->camera);
 
-	for (int i = 0; i < current_engine->draw_count; i++) {
+	for (int i = 0; i < arrlen(current_engine->draw_functions); i++) {
 		current_engine->draw_functions[i]();
 	}
     
@@ -222,13 +208,6 @@ void resize(int width, int height) {
   glMatrixMode(GL_PROJECTION);
   glLoadIdentity();
 	
- //  if (width <= height) {
- //    // glOrtho(-5, 5, -5 * (GLfloat)height / (GLfloat)width, 5 * (GLfloat)height/(GLfloat)width, -10.0, 10.0);
- //    glOrtho(-5, 5, -5 * (GLfloat)height / (GLfloat)width, 5 * (GLfloat)height/(GLfloat)width, -10.0, 10.0);
-	// } else {
- //    glOrtho(-5 * (GLfloat)width/(GLfloat)height, 5*(GLfloat)width/(GLfloat)height, -5, 5, -10.0, 10.0);
-	// }
-
 	// glFrustum(-1.0, 1.0, -1.0, 1.0, 1.5, 20.0);
 	// gluPerspective(1180 * 3.141 / 180, (float) width / height, 1.5, 100.0);
 	// gluPerspective(1000, 1, 1.5, 100.0);
@@ -239,14 +218,14 @@ void resize(int width, int height) {
 }
 
 // TODO(marcosfons): Check update function
-void update() {
+void engine_update() {
 	bool should_redraw = false;
 	int since_start = glutGet(GLUT_ELAPSED_TIME);
 	int delta = since_start - current_engine->last_update_call_time;
 	current_engine->last_update_call_time = since_start;
 	double step = 0.01 * delta;
 
-	for (int i = 0; i < current_engine->update_count; i++) {
+	for (int i = 0; i < arrlen(current_engine->update_functions); i++) {
 		should_redraw = current_engine->update_functions[i](delta) || should_redraw;
 	}
 
@@ -273,31 +252,34 @@ void update() {
 	}
 
 	if (should_redraw) {
+		for (int i = 0; i < arrlen(current_engine->on_camera_move_functions); i++) {
+			current_engine->on_camera_move_functions[i](&(current_engine->camera));
+		}
 		glutPostRedisplay();
 	}
 }
 
 void add_init_function(engine* engine, init_function func) {
-	engine->init_count += 1;
-	engine->init_functions = realloc(engine->init_functions, engine->init_count);
-	engine->init_functions[engine->init_count - 1] = func;
+	arrput(engine->init_functions, func);
 }
 
 void add_draw_function(engine* engine, draw_function func) {
-	engine->draw_count += 1;
-	engine->draw_functions = realloc(engine->draw_functions, engine->draw_count);
-	engine->draw_functions[engine->draw_count - 1] = func;
+	arrput(engine->draw_functions, func);
 }
 
 void add_update_function(engine* engine, update_function func) {
-	engine->update_functions = realloc(engine->update_functions, engine->update_count + 1);
-	engine->update_functions[engine->update_count] = func;
-	engine->update_count += 1;
+	arrput(engine->update_functions, func);
+}
+
+void add_on_camera_move_function(engine* engine, on_camera_move_function func) {
+	arrput(engine->on_camera_move_functions, func);
 }
 
 void destroy_engine() {
-	free(current_engine->draw_functions);
-	free(current_engine->update_functions);
+	arrfree(current_engine->draw_functions);
+	arrfree(current_engine->draw_functions);
+	arrfree(current_engine->update_functions);
+	arrfree(current_engine->on_camera_move_functions);
 
 	free(current_engine);
 	current_engine = NULL;

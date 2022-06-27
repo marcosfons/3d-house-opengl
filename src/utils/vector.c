@@ -9,6 +9,10 @@ vector3 empty_vector() {
 	return (vector3) {0, 0, 0};
 }
 
+vector3 create_vector(float x, float y, float z) {
+	return (vector3) {x, y, z};
+}
+
 vector3 sum(vector3 v1, vector3 v2) {
 	v1.x += v2.x;
 	v1.y += v2.y;
