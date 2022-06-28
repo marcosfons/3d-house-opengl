@@ -22,13 +22,10 @@
 
 static engine* current_engine = NULL;
 
-static bool left_pressed = false;
-static bool up_pressed = false;
-static bool down_pressed = false;
-static bool right_pressed = false;
-static bool space_pressed = false;
-static bool control_pressed = false;
 
+static void exit_window_by_key(key_handler* _) {
+	glutDestroyWindow(glutGetWindow());
+}
 
 engine* create_engine(char* window_title, int fps, int width, int height) {
 	if (current_engine != NULL) {
@@ -47,6 +44,8 @@ engine* create_engine(char* window_title, int fps, int width, int height) {
 
 	current_engine->camera = create_camera();
 
+	current_engine->keyboard_handler = create_keyboard_handler();
+
 	current_engine->init_functions = NULL;
 	current_engine->draw_functions = NULL;
 	current_engine->update_functions = NULL;
@@ -55,59 +54,40 @@ engine* create_engine(char* window_title, int fps, int width, int height) {
 	current_engine->old_mouse[0] = -DBL_MAX;
 	current_engine->old_mouse[1] = -DBL_MAX;
 
+	
+	add_key(current_engine->keyboard_handler, NULL, 'Q', NULL, NONE, 0);
+	add_key(current_engine->keyboard_handler, NULL, 'q', NULL, NONE, 0);
+	add_key(current_engine->keyboard_handler, NULL, 'A', NULL, NONE, 0);
+	add_key(current_engine->keyboard_handler, NULL, 'a', NULL, NONE, 0);
+	add_key(current_engine->keyboard_handler, NULL, 'S', NULL, NONE, 0);
+	add_key(current_engine->keyboard_handler, NULL, 's', NULL, NONE, 0);
+	add_key(current_engine->keyboard_handler, NULL, 'W', NULL, NONE, 0);
+	add_key(current_engine->keyboard_handler, NULL, 'w', NULL, NONE, 0);
+	add_key(current_engine->keyboard_handler, NULL, 'D', NULL, NONE, 0);
+	add_key(current_engine->keyboard_handler, NULL, 'd', NULL, NONE, 0);
+	add_key(current_engine->keyboard_handler, NULL, SPACEBAR_KEY, NULL, NONE, 0);
+	add_special_key(current_engine->keyboard_handler, NULL, CONTROL_KEY, NULL, NONE, 0);
+
+	get_key(current_engine->keyboard_handler, 'Q')->func = exit_window_by_key;
+	get_key(current_engine->keyboard_handler, 'q')->func = exit_window_by_key;
+
 	return current_engine;
 }
 
-static void generic_key_press(unsigned char key, bool is_pressed) {
-	switch (key) {
-		case 'a': case 'A':
-			left_pressed = is_pressed;
-			break;
-		case 'd': case 'D':
-			right_pressed = is_pressed;
-			break;
-		case 'w': case 'W':
-			up_pressed = is_pressed;
-			break;
-		case 's': case 'S':
-			down_pressed = is_pressed;
-			break;
-		case SPACEBAR_KEY:
-			space_pressed = is_pressed;
-			break;
-	}
-}
-
 void on_key_press(unsigned char key, int x, int y) {
-  switch (key) {
-    case 'q': case 'Q':
-			destroy_engine();
-			glutDestroyWindow(glutGetWindow());
-			break;
-		default:
-			generic_key_press(key, true);
-			break;
-	}
+	execute_key(current_engine->keyboard_handler, key, true);
 }
 
 void on_key_released(unsigned char key, int x, int y) {
-	generic_key_press(key, false);
-}
-
-static void special_key_press(int key, bool is_pressed) {
-	switch (key) {
-		case CONTROL_KEY:
-			control_pressed = is_pressed;
-			break;
-	}
+	execute_key(current_engine->keyboard_handler, key, false);
 }
 
 void on_special_key_press(int key, int x, int y) {
-	special_key_press(key, true);
+	execute_special_key(current_engine->keyboard_handler, key, true);
 }
 
 void on_special_key_released(int key, int x, int y) {
-	special_key_press(key, false);
+	execute_special_key(current_engine->keyboard_handler, key, false);
 }
 
 // Code based on https://learnopengl.com/Getting-started/Camera
@@ -229,9 +209,18 @@ void engine_update() {
 		should_redraw = current_engine->update_functions[i](delta) || should_redraw;
 	}
 
+
+	keyboard_handler* kh = current_engine->keyboard_handler;
+	bool up_pressed    = get_key(kh, 'w')->is_pressed || get_key(kh, 'W')->is_pressed;
+	bool down_pressed  = get_key(kh, 's')->is_pressed || get_key(kh, 'S')->is_pressed;
+	bool left_pressed  = get_key(kh, 'a')->is_pressed || get_key(kh, 'A')->is_pressed;
+	bool right_pressed = get_key(kh, 'd')->is_pressed || get_key(kh, 'D')->is_pressed;
+	bool space_pressed = get_key(kh, SPACEBAR_KEY)->is_pressed;
+	bool ctrl_pressed  = get_special_key(kh, CONTROL_KEY)->is_pressed;
+
 	should_redraw = should_redraw || 
 									up_pressed || down_pressed || right_pressed || left_pressed || 
-									space_pressed || control_pressed;
+									space_pressed || ctrl_pressed;
 	if (up_pressed) {
 		move_forward(&current_engine->camera, step);
 	}
@@ -247,7 +236,7 @@ void engine_update() {
 	if (space_pressed) {
 		move_up(&current_engine->camera, step);
 	}
-	if (control_pressed) {
+	if (ctrl_pressed) {
 		move_down(&current_engine->camera, step);
 	}
 
@@ -280,6 +269,8 @@ void destroy_engine() {
 	arrfree(current_engine->draw_functions);
 	arrfree(current_engine->update_functions);
 	arrfree(current_engine->on_camera_move_functions);
+
+	destroy_keyboard_handler(current_engine->keyboard_handler);
 
 	free(current_engine);
 	current_engine = NULL;

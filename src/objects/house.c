@@ -107,23 +107,23 @@ static void draw_3d_quad(float width, float height, float depth) {
 		glVertex3f(width, height, 0);
 	glEnd();
 }
-static void draw_3d_quad_with_hole(float wall[3], float pos[2], float dimensions[2]) {
+static void draw_3d_quad_with_hole(float wallX, float wallY, float wallZ, float pos[2], float dimensions[2]) {
 	glPushMatrix();
 
-	draw_3d_quad(pos[0], wall[1], wall[2]);
+	draw_3d_quad(pos[0], wallY, wallZ);
 
 	glTranslatef(pos[0], 0, 0);
 
-	draw_3d_quad(dimensions[0], pos[1], wall[2]);
+	draw_3d_quad(dimensions[0], pos[1], wallZ);
 
 	glPushMatrix();
 	glTranslatef(0, pos[1] + dimensions[1], 0);
-	draw_3d_quad(dimensions[0], wall[1] - pos[1] - dimensions[1], wall[2]);
+	draw_3d_quad(dimensions[0], wallY - pos[1] - dimensions[1], wallZ);
 	glPopMatrix();
 
 	glTranslatef(dimensions[0], 0, 0);
 
-	draw_3d_quad(wall[0] - pos[0] - dimensions[0], wall[1], wall[2]);
+	draw_3d_quad(wallX - pos[0] - dimensions[0], wallY, wallZ);
 
 	glPopMatrix();
 }
@@ -170,6 +170,12 @@ static void draw_wall_with_hole(float width, float height, float pos[2], float d
 	glEnd();
 }
 
+
+static void draw_table() {
+	
+}
+
+
 void draw_house(house* house) {
 	glTranslatef(0, 0, 10);
 	glEnable(GL_COLOR_MATERIAL);
@@ -186,7 +192,7 @@ void draw_house(house* house) {
 	const float height = 5;
 	const float depth = 0.2;
 
-	const float first_wall_width = 10;
+	const float first_wall_width = 15;
 	const float first_wall_width_depth = 12; // The amount that it goes for Z
 	//
 	// // Roof
@@ -197,30 +203,30 @@ void draw_house(house* house) {
 	// // 	glVertex3f(8, height, 0);
 	// // glEnd();
 	//
-	// // draw_wall_with_hole(8, height, (float[2]) { 4, 0 }, (float[2]) {2, 3});
-	// // draw_3d_quad_with_hole((float[3]) {8, height, 1}, (float[2]) { 4, 0 }, (float[2]) {2, 3});
+	// Front door
 	glPushMatrix();
-	// glTranslatef(4, 0, 0);
-	draw_3d_quad_with_hole((float[3]){first_wall_width, height, depth}, (float[2]){-2, 1.2}, (float[2]) {1, 1});
-	// draw_3d_quad(-first_wall_width, height, depth);
+	glTranslatef(4 - first_wall_width/2, 0, 0);
+	draw_3d_quad_with_hole(first_wall_width/2, height, depth, (float[2]){3, 2}, (float[2]) {2, 2});
+	glTranslatef(-first_wall_width/2, 0, 0);
+	draw_3d_quad_with_hole(first_wall_width/2, height, depth, (float[2]){5, 0}, (float[2]) {2.3, 3.5});
 
-	//
-	// glTranslatef(-8, 0, 0);
-	// glRotatef(-90, 0, 1, 0);
-	// draw_3d_quad(first_wall_width_depth, 5, depth);
-	//
-	// glTranslatef(8, 0, 0);
-	// glRotatef(-90, 0, 1, 0);
-	//
-	// draw_3d_quad_with_hole((float[3]){8, 5, depth}, (float[2]) { 4, 1.5 }, (float[2]){3, 2});
-	// // draw_wall_with_hole(8, height, (float[2]) { 4, 1.5 }, (float[2]){3, 2});
-	// //
-	// glTranslatef(8, 0, 0);
-	// glRotatef(-90, 0, 1, 0);
-	// draw_wall(8, height);
-	//
-	// // Floor
-	// draw_3d_quad(8, 0.001, 8);
+	// Right door
+	glRotatef(90, 0, -1, 0);
+	draw_3d_quad(first_wall_width_depth, 5, depth);
+
+	// Back door
+	glTranslatef(first_wall_width_depth, 0, 0);
+	glRotatef(90, 0, 1, 0);
+	draw_3d_quad_with_hole(first_wall_width, 5, depth, (float[2]) { 4, 1.5 }, (float[2]){3, 2});
+
+	// Left wall
+	glTranslatef(first_wall_width, 0, 0);
+	glRotatef(90, 0, 1, 0);
+	draw_3d_quad_with_hole(first_wall_width_depth, 5, depth, (float[2]) { 4, 1.5 }, (float[2]){3.5, 2.3});
+	
+	// Floor
+	glRotatef(90, 0, 1, 0);
+	draw_3d_quad(first_wall_width, 0.001, first_wall_width_depth);
 
 	// glDisable(GL_COLOR_MATERIAL);
 	// glBindTexture(GL_TEXTURE_2D, 0);

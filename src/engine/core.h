@@ -6,6 +6,7 @@
 #include <float.h>
 
 #include "camera.h"
+#include "keyboard_handler.h"
 
 #define MOUSE_BOUND_SCREEN_LIMIT 100
 #define MOUSE_DELTA_LIMIT 30
@@ -35,6 +36,9 @@ typedef struct {
 	// Camera
 	camera camera;
 
+	// Keyboard
+	keyboard_handler* keyboard_handler;
+
 	// Mouse
 	double old_mouse[2];
 
@@ -55,6 +59,10 @@ void init_engine(engine* engine, int argc, char** argv);
 void engine_draw();
 void engine_update();
 void resize(int width, int height);
+
+
+void add_key(keyboard_handler* handler, const char* name, int key, float* value, key_mode_func mode, float optional);
+void add_special_key(keyboard_handler* handler, const char* name, int key, float* value, key_mode_func mode, float optional);
 
 void add_init_function(engine* engine, init_function func);
 void add_draw_function(engine* engine, draw_function func);

@@ -23,17 +23,16 @@ sky* psky = NULL;
 grass_floor* pgrass_floor = NULL;
 house* phouse = NULL;
 
-int inite = 0;
+// Using float because what the keyboard_handler uses
+float light_enabled = 0;
+float sky_enabled = 0;
 
 void init() {
-	printf("INit\n");
 	set_light_ambient(plight, 0.3, 0.3, 0.3, 1.0);
 	set_light_diffuse(plight, 1.0, 1.0, 1.0, 1.0);
 	set_light_specular(plight, 1.0, 1.0, 1.0, 1.0);
-	set_light_position(plight, -10.0, 15.0, 0.0, 1.0);
-	set_light_position(plight, 0.0, 10.0, 4.0, 1.0);
+	set_light_position(plight, 0.0, 10.0, 0.0, 1.0);
 	enable_light(plight);
-
 
 	init_house(phouse);
 	init_sky(psky);
@@ -46,13 +45,18 @@ void draw() {
 	glEnable(GL_NORMALIZE);
 	
 	glEnable(GL_COLOR_MATERIAL);
-	debug_light(plight);
+
+	if (light_enabled == 1) {
+		debug_light(plight);
+	}
 
 	draw_grass_floor(pgrass_floor);
 
 	draw_house(phouse);
 
-	draw_sky(psky);
+	if (sky_enabled == 1) {
+		draw_sky(psky);
+	}
 }
 
 void on_camera_move(camera* camera) {
@@ -66,6 +70,20 @@ int main(int argc, char** argv) {
 	plight = create_light(GL_LIGHT0);
 	phouse = create_house();
 	psky = create_sky(100);
+
+	// add_key(engine->keyboard_handler, "Enable/Disable light points", 'l', &light_enabled, SWITCH, 0);
+	// add_key(engine->keyboard_handler, "Enable/Disable light points", 'L', &light_enabled, SWITCH, 0);
+	add_key(engine->keyboard_handler, "Enable/Disable sky", 't', &sky_enabled, SWITCH, 0);
+	add_key(engine->keyboard_handler, "Enable/Disable sky", 'T', &sky_enabled, SWITCH, 0);
+
+	add_key(engine->keyboard_handler, "Enable/Disable light points", 'l', &(plight->position[0]), INCREMENT, 0.5);
+	add_key(engine->keyboard_handler, "Enable/Disable light points", 'L', &(plight->position[0]), INCREMENT, 0.5);
+	add_key(engine->keyboard_handler, "Enable/Disable light points", 'h', &(plight->position[0]), INCREMENT, -0.5);
+	add_key(engine->keyboard_handler, "Enable/Disable light points", 'H', &(plight->position[0]), INCREMENT, -0.5);
+	add_key(engine->keyboard_handler, "Enable/Disable light points", 'k', &(plight->position[2]), INCREMENT, 0.5);
+	add_key(engine->keyboard_handler, "Enable/Disable light points", 'K', &(plight->position[2]), INCREMENT, 0.5);
+	add_key(engine->keyboard_handler, "Enable/Disable light points", 'j', &(plight->position[2]), INCREMENT, -0.5);
+	add_key(engine->keyboard_handler, "Enable/Disable light points", 'J', &(plight->position[2]), INCREMENT, -0.5);
 	
 	add_init_function(engine, init);
 
