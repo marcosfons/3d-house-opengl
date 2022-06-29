@@ -2,7 +2,7 @@
 #include <stdlib.h>
 
 #include <GL/glut.h>
-#include <GL/gl.h>
+// #include <GL/gl.h>
 
 #define STB_IMAGE_IMPLEMENTATION
 #include "../include/stb/stb_image.h"
@@ -45,15 +45,16 @@ void draw() {
 	glEnable(GL_NORMALIZE);
 	
 	glEnable(GL_COLOR_MATERIAL);
-
+	
 	if (light_enabled == 1) {
 		debug_light(plight);
 	}
+	glColor3ub(255, 255, 255);
 
 	draw_grass_floor(pgrass_floor);
-
+	
 	draw_house(phouse);
-
+	
 	if (sky_enabled == 1) {
 		draw_sky(psky);
 	}

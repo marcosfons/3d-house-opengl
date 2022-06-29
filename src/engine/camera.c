@@ -12,7 +12,7 @@ camera create_camera() {
 	camera new_camera;
 
 	new_camera.eye =    (vector3) { 0, 0, 1 };
-	new_camera.center = (vector3) { 0, 2, 0 };
+	new_camera.center = (vector3) { 0, 2, -8 };
 	new_camera.up =     (vector3) { 0, 1, 0 };
 
 	new_camera.yaw = 90;

@@ -41,13 +41,14 @@ typedef struct {
 // If the normal or the texture are not defined to 
 // this faces the pointers are null
 typedef struct {
-	GLuint* vertex_index;
-	GLuint* normal_index;
-	GLuint* texture_index;
 
-	GLuint vertex_index_vbo;
-	GLuint normal_index_vbo;
-	GLuint texture_index_vbo;
+	vertex* vertices;
+	normal* normals;
+	texture_vertex* texture_vertices;
+
+	GLuint vertex_vbo;
+	GLuint normal_vbo;
+	GLuint texture_vbo;
 } faces;
 
 typedef struct {
@@ -70,13 +71,13 @@ typedef struct {
 typedef struct {
 	char* filepath;
 
-	vertex* vertices;
-	normal* normals;
-	texture_vertex* texture_vertices;
+	// vertex* vertices;
+	// normal* normals;
+	// texture_vertex* texture_vertices;
 
-	GLuint vertex_vbo;
-	GLuint normal_vbo;
-	GLuint texture_vertices_vbo;
+	// GLuint vertex_vbo;
+	// GLuint normal_vbo;
+	// GLuint texture_vertices_vbo;
 	
 	// This is like having a map of material -> list of faces
 	faces_by_material* faces_by_material;

@@ -11,6 +11,16 @@ typedef struct {
 		
 	obj* guitar_obj;
 	obj* porsche_obj;
+	obj* bed_obj;
+	obj* toilet_obj;
+	obj* couch_obj;
+	obj* teapot_obj;
+	obj* plant_obj;
+
+	GLuint display_list;
+	GLuint display_list_transparent;
+	bool compiled;
+	bool compiled_transparent;
 } house;
 
 

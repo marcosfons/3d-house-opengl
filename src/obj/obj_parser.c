@@ -4,8 +4,8 @@
 
 #include "obj_parser.h"
 
-
 #include "../../include/stb/stb_ds.h"
+
 
 obj* parse_obj(char* filepath, char* material_filepath) {
 	FILE* obj_file = fopen(filepath, "r");
@@ -36,7 +36,7 @@ obj* parse_obj(char* filepath, char* material_filepath) {
 	return new_obj;
 }
 
-void add_face(obj* obj, faces_by_material* current_material, face face) {
+void add_face(parsing_obj* obj, faces_by_material* current_material, face face) {
 	face_types type = face.elements[0].normal_is_set + (face.elements[0].texture_is_set << 1);
 
 	int key = type + (face.elements_count << 2);
@@ -49,14 +49,14 @@ void add_face(obj* obj, faces_by_material* current_material, face face) {
 	faces* fs = &hmget(current_material->faces, key);
 
 	for (int i = 0; i < face.elements_count; i++) {
-		arrput(fs->vertex_index, face.elements[i].vertex_index - 1);
+		arrput(fs->vertices, obj->vertices[face.elements[i].vertex_index - 1]);
 		if (face.elements[i].normal_is_set) {
-			arrput(fs->normal_index, face.elements[i].normal_index - 1);
+			arrput(fs->normals, obj->normals[face.elements[i].normal_index - 1]);
 		}
 		if (face.elements[i].texture_is_set) {
-			arrput(fs->texture_index, face.elements[i].texture_index - 1);
+			arrput(fs->texture_vertices, obj->texture_vertices[face.elements[i].texture_index - 1]);
 		}
-	} 
+	}
 }
 
 void add_element(face* face, element element) {
@@ -67,23 +67,17 @@ void add_element(face* face, element element) {
 }
 
 obj* parse_from_fp(FILE* fp, materials* materials) {
-	obj* new_obj = malloc(sizeof(obj));
+	parsing_obj* parsing = malloc(sizeof(parsing_obj));
 
-	new_obj->vertices = NULL;
-	new_obj->normals = NULL;
-	new_obj->texture_vertices = NULL;
+	parsing->vertices = NULL;
+	parsing->normals = NULL;
+	parsing->texture_vertices = NULL;
 
-	new_obj->vertex_vbo = -1;
-	new_obj->normal_vbo = -1;
-	new_obj->texture_vertices_vbo = -1;
-
-	// obj->faces = malloc(INITIAL_LIST_SIZE * sizeof(face));
-	// obj->faces_count = 0;
-	// obj->faces_size = INITIAL_LIST_SIZE;
+	parsing->obj = malloc(sizeof(obj));
 
 	faces_by_material default_f = { "", NULL, NULL };
-	new_obj->faces_by_material = NULL;
-	shputs(new_obj->faces_by_material, default_f);
+	parsing->obj->faces_by_material = NULL;
+	shputs(parsing->obj->faces_by_material, default_f);
 
 	if (materials != NULL) {
 		for (int i = 0; i < materials->count; i++) {	
@@ -92,7 +86,7 @@ obj* parse_from_fp(FILE* fp, materials* materials) {
 				materials->mtls + i,
 				NULL
 			};
-			shputs(new_obj->faces_by_material, new_faces);
+			shputs(parsing->obj->faces_by_material, new_faces);
 		}
 	}
 
@@ -100,10 +94,10 @@ obj* parse_from_fp(FILE* fp, materials* materials) {
 	size_t length = 0;
 	long int nread;
 
-	faces_by_material* current_material = &shgets(new_obj->faces_by_material, "");
+	faces_by_material* current_material = &shgets(parsing->obj->faces_by_material, "");
 	
 	while ((nread = getline(&line, &length, fp)) != -1) {
-		parse_line(new_obj, &current_material, line);
+		parse_line(parsing, &current_material, line);
 	}
 
 	free(line);
@@ -111,10 +105,11 @@ obj* parse_from_fp(FILE* fp, materials* materials) {
 		perror("getline");
 	}
 
-	return new_obj;
+	// TODO(marcosfons): Here I should free parsing variable
+	return parsing->obj;
 }
 
-void parse_line(obj* obj, faces_by_material** current_material, char* line) {
+void parse_line(parsing_obj* obj, faces_by_material** current_material, char* line) {
 	const char* sep = " \n\0";
 
 	char* token = strtok(line, sep);
@@ -280,10 +275,10 @@ void parse_line(obj* obj, faces_by_material** current_material, char* line) {
 	} else if (strcmp(token, "usemtl") == 0) {
 		token = strtok(NULL, sep);
 
-		if (shgeti(obj->faces_by_material, token) > 0) {
-			*current_material = &shgets(obj->faces_by_material, token);
+		if (shgeti(obj->obj->faces_by_material, token) > 0) {
+			*current_material = &shgets(obj->obj->faces_by_material, token);
 		} else {
-			*current_material = &shgets(obj->faces_by_material, "");
+			*current_material = &shgets(obj->obj->faces_by_material, "");
 		}
 	}
 }

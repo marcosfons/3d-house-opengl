@@ -104,18 +104,10 @@ void parse_mtl_line(materials* materials, char* line) {
 			exit(EXIT_FAILURE);
 		}
 		materials->mtls[materials->count - 1].transparency = value;
-		// if (materials->mtls[materials->count - 1].ambient_color) {
-		// 	materials->mtls[materials->count - 1].ambient_color[3] = value;
-		// }
-		//
-		// if (materials->mtls[materials->count - 1].diffuse_color) {
-		// 	materials->mtls[materials->count - 1].diffuse_color[3] = value;
-		// }
-		//
-		// if (materials->mtls[materials->count - 1].specular_color) {
-		// 	printf("SPec\n");
-		// 	materials->mtls[materials->count - 1].specular_color[3] = value;
-		// }
+
+		if (materials->mtls[materials->count - 1].diffuse_color) {
+			materials->mtls[materials->count - 1].diffuse_color[3] = value;
+		}
 	} else if (strcmp(token, "illum") == 0) {
 		token = strtok(NULL, sep);
 
