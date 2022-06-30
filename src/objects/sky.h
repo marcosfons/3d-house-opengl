@@ -10,6 +10,8 @@ typedef struct {
 	float size;
 
 	GLfloat* position;
+
+	GLuint display_list;
 } sky;
 
 

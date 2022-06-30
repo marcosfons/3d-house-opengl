@@ -52,12 +52,11 @@ void draw() {
 	glColor3ub(255, 255, 255);
 
 	draw_grass_floor(pgrass_floor);
-	
-	draw_house(phouse);
-	
-	if (sky_enabled == 1) {
+
+	if (sky_enabled == 0) {
 		draw_sky(psky);
 	}
+	draw_house(phouse);
 }
 
 void on_camera_move(camera* camera) {
@@ -65,12 +64,12 @@ void on_camera_move(camera* camera) {
 }
 
 int main(int argc, char** argv) {
-	engine* engine = create_engine("3D house", 80, 1200, 500);
+	engine* engine = create_engine("3D house", 80, 1150, 450);
 
 	pgrass_floor = create_grass_floor();
 	plight = create_light(GL_LIGHT0);
 	phouse = create_house();
-	psky = create_sky(100);
+	psky = create_sky(300);
 
 	// add_key(engine->keyboard_handler, "Enable/Disable light points", 'l', &light_enabled, SWITCH, 0);
 	// add_key(engine->keyboard_handler, "Enable/Disable light points", 'L', &light_enabled, SWITCH, 0);

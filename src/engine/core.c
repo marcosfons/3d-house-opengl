@@ -129,7 +129,7 @@ void init_engine(engine* engine, int argc, char** argv) {
 	glutInit(&argc, argv);
 	glutInitDisplayMode(GLUT_SINGLE | GLUT_RGB | GLUT_DEPTH);
 	glutInitWindowSize(engine->width, engine->height);
-	glutInitWindowPosition(50, 50);
+	glutInitWindowPosition(0, 0);
 
 	engine->window_id = glutCreateWindow(engine->title);
 

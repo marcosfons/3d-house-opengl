@@ -29,10 +29,13 @@ house* create_house() {
 	house* new_house = malloc(sizeof(house));
 
 	new_house->wall_texture = NULL;
-	new_house->guitar_obj = parse_obj("assets/obj/guitar/guitar.obj", "assets/obj/guitar/guitar.mtl");
+	new_house->guitar_obj = parse_obj("assets/obj/guitar/guitar_sla.obj", "assets/obj/guitar/guitar_sla.mtl");
 	new_house->porsche_obj = parse_obj(
 			"assets/obj/porsche/porsche_cayman_gt4.obj", "assets/obj/porsche/porsche_cayman_gt4.mtl"
 	);
+	// new_house->porsche_obj = parse_obj(
+	// 		"assets/obj/porsche/untitled3.obj", "assets/obj/porsche/untitled3.mtl"
+	// );
 	new_house->bed_obj = parse_obj("assets/obj/bed/bed.obj", "assets/obj/bed/bed.mtl");
 	new_house->toilet_obj = parse_obj("assets/obj/toilet/toilet.obj", "assets/obj/toilet/toilet.mtl");
 	new_house->couch_obj = parse_obj("assets/obj/couch/couch.obj", "assets/obj/couch/couch.mtl");

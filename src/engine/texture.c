@@ -42,10 +42,13 @@ texture* load_texture(char* filepath, GLenum target) {
 
 
 texture* load_cubemap(char* faces[6], GLenum target) {
+	stbi_set_flip_vertically_on_load(false);
 	texture* new_texture = malloc(sizeof(texture));
 	new_texture->target = target;
 
+	glBindTexture(GL_TEXTURE_2D, 0);
 	glGenTextures(1, &new_texture->id);
+	glDisable(GL_TEXTURE_2D);
 	glEnable(GL_TEXTURE_CUBE_MAP);
 	glActiveTexture(target);
 	glBindTexture(GL_TEXTURE_CUBE_MAP, new_texture->id);

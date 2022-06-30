@@ -14,6 +14,8 @@ sky* create_sky(float size) {
 	new_sky->position[1] = 0;
 	new_sky->position[2] = 0;
 
+	new_sky->display_list = -1;
+
 	return new_sky;
 }
 
@@ -40,6 +42,15 @@ void set_sky_position(sky* sky, GLfloat x, GLfloat y, GLfloat z) {
 }
 
 void draw_sky(sky* sky) {
+	if (sky->display_list != -1) {
+		glCallList(sky->display_list);
+		return;
+	}
+
+	sky->display_list = glGenLists(1);
+	glNewList(sky->display_list, GL_COMPILE_AND_EXECUTE);
+
+
 	// Code from https://stackoverflow.com/questions/58125554/legacy-opengl-rendering-cube-map-layout-understanding-gltexcoord3f-parameters
 	float size = sky->size;
 	float pnt[8][3] = {
@@ -60,28 +71,32 @@ void draw_sky(sky* sky) {
 		6,7,3,2,
 		7,4,0,3
 	};
+
 	glDisable(GL_LIGHTING);
 	glPushMatrix();
 	glTranslatef(-sky->position[0], 0, -sky->position[2]);
 	glColor3ub(255, 255, 255);
-
-	// glDisable(GL_TEXTURE0);
-	// glDisable(GL_TEXTURE_2D);
 	
+	// // glDisable(GL_TEXTURE0);
+	// // glDisable(GL_TEXTURE_2D);
+	 
 	glEnable(GL_TEXTURE_CUBE_MAP);
 	glActiveTexture(sky->texture->target);
 	glBindTexture(GL_TEXTURE_CUBE_MAP, sky->texture->id);
 	glBegin(GL_QUADS);
-	for (int i=23;i>=0;i--) {
+	for (int i=23; i>=0; i--) {
 		int j = tab[i];
 		glMultiTexCoord3fv(GL_TEXTURE0, pnt[j]);
 		glVertex3fv(pnt[j]);
 	}
 	glEnd();
 
-	glTexCoord3f(0, 0, 0);
+	// glTexCoord3f(0, 0, 0);
 	glPopMatrix();
 
+	glDisable(GL_TEXTURE_CUBE_MAP);
 	glEnable(GL_LIGHTING);
 
+
+	glEndList();
 }
